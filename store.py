@@ -1,34 +1,41 @@
-from typing import List, Tuple
+from __future__ import annotations
+
+from typing import Iterable, List, Tuple
+
 from products import Product
 
-class Store:
-    def __init__(self, products: List[Product]):
-        self.products = products
 
-    def add_product(self, product: Product):
+class Store:
+    """Collection of products available for sale."""
+
+    def __init__(self, products: Iterable[Product] | None = None) -> None:
+        self.products: List[Product] = list(products) if products else []
+
+    # ---- product management ----
+    def add_product(self, product: Product) -> None:
         self.products.append(product)
 
-    def remove_product(self, product: Product):
+    def remove_product(self, product: Product) -> None:
         self.products.remove(product)
 
-    def get_total_quantity(self) -> int:
-        return sum(product.quantity for product in self.products if product.is_active)
-
     def get_all_products(self) -> List[Product]:
-        return [product for product in self.products if product.is_active]
+        return [p for p in self.products if p.is_active()]
 
+    def get_total_quantity(self) -> int:
+        return sum(p.quantity for p in self.get_all_products())
+
+    # ---- order processing ----
     def order(self, shopping_list: List[Tuple[Product, int]]) -> float:
-        total_price = 0.0
+        total = 0.0
         for product, quantity in shopping_list:
-            if product.is_active and quantity <= product.quantity:
-                total_price += product.buy(quantity)
-            else:
-                raise ValueError(f"Cannot fulfill the order for {product.name}. Not enough quantity or product is inactive.")
-        return total_price
+            if product not in self.products:
+                raise ValueError(f"{product.name} is not sold in this store")
+            total += product.buy(quantity)
+        return total
 
-    def __contains__(self, product):
+    # ---- magic methods ----
+    def __contains__(self, product: Product) -> bool:
         return product in self.products
 
-    def __add__(self, other):
-        new_store = Store(self.products + other.products)
-        return new_store
+    def __add__(self, other: "Store") -> "Store":
+        return Store(self.products + other.products)
